@@ -24,7 +24,6 @@ extern volatile float offset_pressao;
 extern volatile float limite_min_temp;
 extern volatile float limite_max_temp;
 extern volatile float limite_min_umi;
-extern volatile float limite_max_umi;
 
 // Wi-Fi
 #define WIFI_SSID "AP_LAB_MOVEL"
@@ -98,7 +97,6 @@ static const char HTML_BODY[] =
 "lim_min_temp: parseFloat(document.getElementById('limMinTemp').value),"
 "lim_max_temp: parseFloat(document.getElementById('limMaxTemp').value),"
 "lim_min_umi: parseFloat(document.getElementById('limMinUmi').value),"
-"lim_max_umi: parseFloat(document.getElementById('limMaxUmi').value)"
 "};"
 "fetch('/ajuste', {"
 "method: 'POST',"
@@ -214,7 +212,7 @@ static err_t http_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t er
             "Content-Length: %d\r\n"
             "Connection: close\r\n\r\n%s",
             content_length, HTML_BODY);
-            
+
     } else if (strstr(req, "GET /estado")) {
          // Aplica os offsets de calibração
         float temp_calibrada = temp_aht;       // já calibrado na task_sensores
@@ -252,7 +250,6 @@ static err_t http_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t er
             "\"limite_min_temp\":%.1f,"
             "\"limite_max_temp\":%.1f,"
             "\"limite_min_umi\":%.1f,"
-            "\"limite_max_umi\":%.1f,"
             "\"hist_temp\":[%s],"
             "\"hist_umi\":[%s],"
             "\"hist_tempbmp\":[%s],"
@@ -261,7 +258,7 @@ static err_t http_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t er
             temp_calibrada, umi_calibrada, temp_bmp_calibrada, pressao_calibrada,
             buzzer_silenciado ? 1 : 0,
             offset_temp_aht, offset_umi_aht, offset_temp_bmp, offset_pressao,
-            limite_min_temp, limite_max_temp, limite_min_umi, limite_max_umi,
+            limite_min_temp, limite_max_temp, limite_min_umi,
             hist_temp_str, hist_umi_str, hist_tempbmp_str, hist_pressao_str);
 
         hs->len = snprintf(hs->response, sizeof(hs->response),
@@ -272,18 +269,34 @@ static err_t http_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t er
             json_len, json);
 
     } else if (strstr(req, "POST /ajuste")) {
-        char *body = strstr(req, "\r\n\r\n");
-        if (body) {
-            body += 4; // pular os "\r\n\r\n"
-            sscanf(body,
-                "{\"offset_temp\":%f,\"offset_umi\":%f,\"offset_tempbmp\":%f,\"offset_pressao\":%f,"
-                "\"lim_min_temp\":%f,\"lim_max_temp\":%f,\"lim_min_umi\":%f,\"lim_max_umi\":%f}",
-                &offset_temp_aht, &offset_umi_aht, &offset_temp_bmp, &offset_pressao,
-                &limite_min_temp, &limite_max_temp, &limite_min_umi, &limite_max_umi);
+        // Lê o corpo JSON da requisição
+        const char* json_start = strstr(req, "\r\n\r\n");
+        if (json_start) {
+            json_start += 4; // pula os \r\n\r\n
+            float temp_offset = 0, umi_offset = 0, tempbmp_offset = 0, pressao_offset = 0;
+            float lim_min_temp = 0, lim_max_temp = 0, lim_min_umi = 0;
+
+            sscanf(json_start,
+                "{\"offset_temp\":%f,\"offset_umi\":%f,\"offset_tempbmp\":%f,"
+                "\"offset_pressao\":%f,\"lim_min_temp\":%f,\"lim_max_temp\":%f,"
+                "\"lim_min_umi\":%f}",
+                &temp_offset, &umi_offset, &tempbmp_offset, &pressao_offset,
+                &lim_min_temp, &lim_max_temp, &lim_min_umi);
+
+            offset_temp_aht = temp_offset;
+            offset_umi_aht = umi_offset;
+            offset_temp_bmp = tempbmp_offset;
+            offset_pressao = pressao_offset;
+            limite_min_temp = lim_min_temp;
+            limite_max_temp = lim_max_temp;
+            limite_min_umi = lim_min_umi;
+
+            hs->len = snprintf(hs->response, sizeof(hs->response),
+                            "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        } else {
+            hs->len = snprintf(hs->response, sizeof(hs->response),
+                            "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
         }
-        hs->len = snprintf(hs->response, sizeof(hs->response),
-            "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-    
     } else if (strstr(req, "POST /reset_ajuste")) {
         offset_temp_aht = 0.0;
         offset_umi_aht = 0.0;
@@ -293,11 +306,10 @@ static err_t http_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t er
         limite_min_temp = 10.0;
         limite_max_temp = 35.0;
         limite_min_umi = 30.0;
-        limite_max_umi = 70.0;
 
         hs->len = snprintf(hs->response, sizeof(hs->response),
         "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-    }else {
+    } else {
         const char *resp = "404 Not Found";
         hs->len = snprintf(hs->response, sizeof(hs->response),
             "HTTP/1.1 404 Not Found\r\n"

@@ -17,7 +17,6 @@
 volatile float limite_min_temp = 10.0; // Alerta se temp < 10 °C
 volatile float limite_max_temp = 35.0; // Ex: alerta se temp > 30 °C
 volatile float limite_min_umi = 20.0; // Alerta se umidade < 20%
-volatile float limite_max_umi = 70.0;
 
 // Variáveis globais dos sensores
 extern volatile float temp_aht;

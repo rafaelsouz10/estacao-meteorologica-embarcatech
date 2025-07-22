@@ -12,7 +12,7 @@ extern volatile float temp_aht;
 extern volatile float temp_bmp;
 extern volatile float umid_aht;
 extern volatile float limite_max_temp;
-extern volatile float limite_max_umi;
+extern volatile float limite_min_umi;
 
 // Configuração da matriz
 #define LED_COUNT 25
@@ -71,7 +71,7 @@ void vTaskMatriz(void *params) {
 
   while (true) {
     bool alerta_temp = (temp_aht > limite_max_temp || temp_bmp > limite_max_temp);
-    bool alerta_umi = (umid_aht > limite_max_umi);
+    bool alerta_umi = (umid_aht < limite_min_umi);
 
     if (alerta_temp || alerta_umi) {
       npClear();
