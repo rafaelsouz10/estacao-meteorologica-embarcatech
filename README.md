@@ -121,4 +121,4 @@ A **interface web** é servida localmente pela placa via Wi-Fi e oferece:
 
 ### 8. Vídeos Demonstrativo
 
-**Click [AQUI](https://drive.google.com/drive/folders/1jA9PVI5X_h1CqZ3VpvpdCFmjRirVPf9j) para acessar o link do Vídeo Ensaio**
+**Click [AQUI](https://drive.google.com/file/d/1eS2nOOK4qYordmqG144g9LEyZfRmQfVs/view?usp=sharing) para acessar o link do Vídeo Ensaio**
